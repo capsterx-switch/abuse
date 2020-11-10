@@ -149,7 +149,15 @@ void set_mode(int mode, int argc, char **argv)
     }
     
     //printf("Video : %dx%d %dbpp\n", window->w, window->h, window->format->BitsPerPixel);
-    printf("Video : %dx%d %dbpp\n", flags.xres, flags.yres, bpp);
+    //printf("Video : %dx%d %dbpp\n", flags.xres, flags.yres, bpp);
+    {
+      SDL_DisplayMode m;
+      SDL_GetWindowDisplayMode(window, &m);
+      SDL_RendererInfo rendererInfo;
+      SDL_GetRendererInfo(renderer, &rendererInfo);
+      printf("Video : %dx%d %dbpp (renderer: %s)\n", m.w, m.h,
+          SDL_BITSPERPIXEL(m.format), rendererInfo.name);
+    }
 
     // Grab and hide the mouse cursor
     SDL_ShowCursor(0);

@@ -308,7 +308,7 @@ void EventHandler::SysEvent(Event &ev)
 		    ev.key = get_key_binding("down", 0);
 		    break;
 		case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
-		    ev.key = get_key_binding("b1", 0);
+		    ev.key = get_key_binding("b2", 0);
 		    break;
 	        
 		case SDL_CONTROLLER_BUTTON_BACK:
@@ -320,10 +320,10 @@ void EventHandler::SysEvent(Event &ev)
 		    break;
 #ifdef __SWITCH__
 		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
-	          ev.key = get_key_binding("b2", 0);
+	          ev.key = get_key_binding("b3", 0);
 		  break;
 		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
-	          ev.key = get_key_binding("b3", 0);
+	          ev.key = get_key_binding("b4", 0);
 		  break;
 #endif
 	    }
