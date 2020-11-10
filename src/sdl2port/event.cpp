@@ -24,6 +24,11 @@
 
 #include <SDL.h>
 
+#if defined __SWITCH__
+#include <SDL_thread.h>
+#include "setup.h"
+#endif
+
 #include "common.h"
 
 #include "image.h"
@@ -38,13 +43,30 @@
 extern int get_key_binding(char const *dir, int i);
 extern int mouse_xscale, mouse_yscale;
 short mouse_buttons[5] = { 0, 0, 0, 0, 0 };
+
+#if defined __SWITCH__
+SDL_Joystick* joy;
+SDL_Thread* event_thread;
+bool event_thread_running = true;
+
+extern flags_struct flags;
+
+enum class Switch_Joy
+{
+  KEY_LSTICK_LEFT=SDL_CONTROLLER_BUTTON_MAX+1, 
+  KEY_LSTICK_UP, KEY_LSTICK_RIGHT, KEY_LSTICK_DOWN,
+  KEY_RSTICK_LEFT, KEY_RSTICK_UP, KEY_RSTICK_RIGHT, KEY_RSTICK_DOWN,
+  KEY_SL_LEFT, KEY_SR_LEFT, KEY_SL_RIGHT, KEY_SR_RIGHT
+};
+
+#endif
 SDL_GameController *controller;
 
 extern SDL_Window *window;
 extern flags_struct flags;
 
 // Pre-declarations
-void controller_to_mouse( Event &ev, SDL_Event *sdl_event );
+void controller_to_mouse( Event &ev, SDL_Event *sdl_event, bool=true );
 
 void EventHandler::SysInit()
 {
@@ -85,23 +107,35 @@ void EventHandler::SysEvent(Event &ev)
     // even if another event has occurred.
     ev.mouse_move.x = m_pos.x;
     ev.mouse_move.y = m_pos.y;
+    ev.mouse_button = -1;
+    ev.key = -1;
     //ev.mouse_button = m_button;
+#if defined __SWITCH__
+    ev.type = EV_SPURIOUS;
+#endif
 
     // Gather next event
     SDL_Event sdlev;
     if (!SDL_PollEvent(&sdlev))
         return; // This should not happen
-
+#ifndef __SWITCH__
     if((controller != NULL) && (the_game->state == RUN_STATE) && controller_enabled)
+#else
+    if(controller != NULL)
+#endif
     {
 	// controller axis events translated to mouse events
+#ifdef __SWITCH__
+        bool circle = (the_game->state == RUN_STATE) && controller_enabled;
+	controller_to_mouse(ev, &sdlev, circle);
+#else
 	controller_to_mouse(ev, &sdlev);
-	printf("ev.mouse button = %d, mouse_buttons[0]=%d\n", ev.mouse_button, mouse_buttons[0]);
+#endif
     }
     else
     {
 	ev.mouse_button = m_button;
-	
+
 	// Sort the mouse out
 	int x, y;
 	uint8_t buttons = SDL_GetMouseState(&x, &y);
@@ -191,16 +225,47 @@ void EventHandler::SysEvent(Event &ev)
             break;
         }
         break;
+    case SDL_JOYBUTTONDOWN:
+    case SDL_JOYBUTTONUP:
+	{
+	    if( sdlev.type == SDL_JOYBUTTONDOWN )
+	    {
+		ev.type = EV_KEY;
+	    }
+	    else
+	    {
+		ev.type = EV_KEYRELEASE;
+	    }
+
+	    switch (sdlev.jbutton.button) 
+	    {
+              case (int)Switch_Joy::KEY_LSTICK_LEFT:
+                ev.key = JK_LEFT;
+              	break;
+              case (int)Switch_Joy::KEY_LSTICK_UP:
+                ev.key = JK_UP;
+              	break;
+              case (int)Switch_Joy::KEY_LSTICK_DOWN:
+                ev.key = JK_DOWN;
+              	break;
+              case (int)Switch_Joy::KEY_LSTICK_RIGHT:
+                ev.key = JK_RIGHT;
+                break;
+	    };
+	}
+	break;
+
 	case SDL_CONTROLLERBUTTONDOWN:
 	case SDL_CONTROLLERBUTTONUP:
 	{
+#ifndef __SWITCH__
 	    if((sdlev.cbutton.button == SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) ||
 	       (sdlev.cbutton.button == SDL_CONTROLLER_BUTTON_LEFTSHOULDER))
 	    {
 		// already handled these in controller_to_mouse()
 		break;
 	    }
-	    printf("Got controller button press\n");
+#endif
 		    
 	    if( sdlev.type == SDL_CONTROLLERBUTTONDOWN )
 	    {
@@ -217,37 +282,50 @@ void EventHandler::SysEvent(Event &ev)
 	    switch (sdlev.cbutton.button) 
 	    {
 		case SDL_CONTROLLER_BUTTON_A:
-		    // change weapons
-		    ev.key = JK_INSERT;
+	            ev.key = get_key_binding("b1", 0);
+		    break;
+		case SDL_CONTROLLER_BUTTON_B:
+	            ev.key = get_key_binding("b2", 0);
 		    break;
 		case SDL_CONTROLLER_BUTTON_X:
-		    // jump
+                    ev.key = get_key_binding("b3", 0);
 		    ev.key = JK_UP;
 		    break;
 		case SDL_CONTROLLER_BUTTON_Y:
-		    // activate switch
+                    ev.key = get_key_binding("b4", 0);
 		    ev.key = JK_DOWN;
-		    break;
-		case SDL_CONTROLLER_BUTTON_START:
 		    break;
 		case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-		    // move left
-		    ev.key = JK_LEFT;
+		    ev.key = get_key_binding("left", 0);
 		    break;
 		case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-		    // move right
-		    ev.key = JK_RIGHT;
+		    ev.key = get_key_binding("right", 0);
 		    break;
 		case SDL_CONTROLLER_BUTTON_DPAD_UP:
-		    // jump
-		    ev.key = JK_UP;
+		    ev.key = get_key_binding("up", 0);
 		    break;
 		case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-		    // activate switch
-		    ev.key = JK_DOWN;
+		    ev.key = get_key_binding("down", 0);
 		    break;
-		default:
+		case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+		    ev.key = get_key_binding("b1", 0);
 		    break;
+	        
+		case SDL_CONTROLLER_BUTTON_BACK:
+	           ev.key = JK_ESC;
+	           break;
+
+	        case SDL_CONTROLLER_BUTTON_START:
+	            ev.key = JK_ENTER;
+		    break;
+#ifdef __SWITCH__
+		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+	          ev.key = get_key_binding("b2", 0);
+		  break;
+		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+	          ev.key = get_key_binding("b3", 0);
+		  break;
+#endif
 	    }
 	    break;
 	}
@@ -402,69 +480,87 @@ void EventHandler::SysEvent(Event &ev)
     }
 }
 
-void controller_to_mouse( Event &ev, SDL_Event *sdl_event )
+void controller_to_mouse( Event &ev, SDL_Event *sdl_event, bool circle )
 {
     Sint16 lr_axis, ud_axis;
     int x, y;
-
-    lr_axis = SDL_GameControllerGetAxis(controller, (SDL_GameControllerAxis)2); 
-    ud_axis = SDL_GameControllerGetAxis(controller, (SDL_GameControllerAxis)3); 
     
-    lr_axis /= 1024;
-    ud_axis /= -1024; // flip this axis
-
-    // convert to mouse position
-    float theta = 0.0;
-    float cos_theta;
-    float mag = sqrtf((lr_axis * lr_axis) + (ud_axis * ud_axis));
-    float udotv = 1.0 * lr_axis;
-
-    // give a little dead zone
-    if(mag > 0.001)
+    if (sdl_event->caxis.axis == 2 || sdl_event->caxis.axis == 3)
     {
-	int radius;
-	
-	// calculate the aim angle in terms of a unit circle
-	cos_theta = udotv / mag;
-	theta = acosf(cos_theta);
+      lr_axis = SDL_GameControllerGetAxis(controller, (SDL_GameControllerAxis)2); 
+      ud_axis = SDL_GameControllerGetAxis(controller, (SDL_GameControllerAxis)3); 
+      
+      lr_axis /= 1024;
+      ud_axis /= -1024; // flip this axis
 
-	if(ud_axis < 0) theta *= -1.0f;
+      // convert to mouse position
+      float theta = 0.0;
+      float cos_theta;
+      float mag = sqrtf((lr_axis * lr_axis) + (ud_axis * ud_axis));
+      float udotv = 1.0 * lr_axis;
 
-	// calculate the origin
-	if(the_game->first_view)
-	{
-	    x = the_game->first_view->m_focus->x - the_game->first_view->xoff();
-	    y = the_game->first_view->m_focus->y - the_game->first_view->yoff();
+      // give a little dead zone
+      if(mag > 0.001 || !circle)
+      {
+          if (circle)
+          {
+            int radius;
+            
+            // calculate the aim angle in terms of a unit circle
+            cos_theta = udotv / mag;
+            theta = acosf(cos_theta);
 
-	    y -= 20;
-	    radius = 75;
-	}
-	else
-	{
-	    x = main_screen->Size().x / 2;
-	    y = main_screen->Size().y / 2;
-	    radius = 200;
-	}
+            if(ud_axis < 0) theta *= -1.0f;
 
-	x += (int)roundf(cosf(theta) * radius);
-	y += (int)roundf(sinf(theta) * -1.0 * radius);
+          // calculate the origin
+            if(the_game->first_view)
+            {
+                x = the_game->first_view->m_focus->x - the_game->first_view->xoff();
+                y = the_game->first_view->m_focus->y - the_game->first_view->yoff();
 
-	if( x > main_screen->Size().x - 1 )
-	{
-	    x = main_screen->Size().x - 1;
-	}
-	if( y > main_screen->Size().y - 1 )
-	{
-	    y = main_screen->Size().y - 1;
-	}
+                y -= 20;
+                radius = 75;
+            }
+            else
+            {
+                x = main_screen->Size().x / 2;
+                y = main_screen->Size().y / 2;
+                radius = 200;
+            }
+            x += (int)roundf(cosf(theta) * radius);
+            y += (int)roundf(sinf(theta) * -1.0 * radius);
+          }
+          else
+          {
+            if(sdl_event->caxis.axis == 2)
+            {
+              x= ev.mouse_move.x + (sdl_event->caxis.value / 0x1500);
+              y = ev.mouse_move.y;
+            }
+            else
+            {
+              x = ev.mouse_move.x;
+              y= ev.mouse_move.y + (sdl_event->caxis.value / 0x1500);
+            }
+          }
 
-	ev.mouse_move.x = x;
-	ev.mouse_move.y = y;
-	ev.type = EV_MOUSE_MOVE;
+          if( x > main_screen->Size().x - 1 )
+          {
+              x = main_screen->Size().x - 1;
+          }
+          if( y > main_screen->Size().y - 1 )
+          {
+              y = main_screen->Size().y - 1;
+          }
 
-	//printf("right analog stick (%d,%d) theta = %2f\n", lr_axis, ud_axis, theta);
+          ev.mouse_move.x = x;
+          ev.mouse_move.y = y;
+          ev.type = EV_MOUSE_MOVE;
+
+      }
     }
-    
+
+#ifndef __SWITCH__    
     // keep the state between calls
     static int mouse_button_state = 0;
 
@@ -507,4 +603,7 @@ void controller_to_mouse( Event &ev, SDL_Event *sdl_event )
     
     // save the current state
     mouse_button_state = ev.mouse_button;
+#else
+    ev.mouse_button=0;
+#endif
 }

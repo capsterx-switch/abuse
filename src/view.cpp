@@ -173,10 +173,9 @@ char const *get_login()
     if (cur_user_name[0])
         return cur_user_name;
 
-#if defined __CELLOS_LV2__
+#if defined __CELLOS_LV2__ || defined(__SWITCH__)
     /* FIXME: retrieve login name */
     return "Player";
-#else
     char const *login = getlogin();
     return login ? login : "unknown";
 #endif

@@ -23,7 +23,7 @@
 
 #include "common.h"
 
-#include "sdlport/joy.h"
+#include "sdl2port/joy.h"
 
 #include "dev.h"
 #include "game.h"
@@ -93,7 +93,11 @@ FILE *open_FILE(char const *filename, char const *mode)
 {
     /* FIXME: potential buffer overflow here */
     char tmp_name[200];
+#ifndef __SWITCH__
     if(get_filename_prefix() && filename[0] != '/')
+#else
+    if (get_filename_prefix() && strncmp(filename, "sdmc", 4) != 0 && strncmp(filename, "romfs", 5) != 0)
+#endif
         sprintf(tmp_name, "%s %s", get_filename_prefix(), filename);
     else
         strcpy(tmp_name, filename);
@@ -2269,8 +2273,17 @@ void game_net_init(int argc, char **argv)
   }
 }
 
+#ifdef __SWITCH__
+void initSwitch();
+void deinitSwitch();
+#endif
+
+extern "C" {
 int main(int argc, char *argv[])
 {
+#ifdef __SWITCH__
+    initSwitch();
+#endif
     start_argc = argc;
     start_argv = argv;
 
@@ -2314,6 +2327,8 @@ int main(int argc, char *argv[])
     if (tcpip.installed())
         fprintf(stderr, "Using %s\n", tcpip.name());
 #endif
+    setenv("HOME", "sdmc:/switch", 0);
+
 
     set_dprinter(game_printer);
     set_dgetter(game_getter);
@@ -2321,13 +2336,9 @@ int main(int argc, char *argv[])
 
     setup(argc, argv);
 
-    show_startup();
-
-    start_sound(argc, argv);
-
-    stat_man = new text_status_manager();
-
-#if !defined __CELLOS_LV2__
+#if defined(__SWITCH__)
+    set_save_filename_prefix("sdmc:/switch/");
+#elif !defined __CELLOS_LV2__
     // look to see if we are supposed to fetch the data elsewhere
     if (getenv("ABUSE_PATH"))
         set_filename_prefix(getenv("ABUSE_PATH"));
@@ -2336,6 +2347,13 @@ int main(int argc, char *argv[])
     if (getenv("ABUSE_SAVE_PATH"))
         set_save_filename_prefix(getenv("ABUSE_SAVE_PATH"));
 #endif
+
+    show_startup();
+
+    start_sound(argc, argv);
+
+    stat_man = new text_status_manager();
+
 
     jrand_init();
     jrand(); // so compiler doesn't complain
@@ -2487,6 +2505,10 @@ int main(int argc, char *argv[])
 
     sound_uninit();
 
+
+#ifdef __SWITCH__
+    deinitSwitch();
+#endif
     return 0;
 }
-
+}

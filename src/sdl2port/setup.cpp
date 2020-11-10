@@ -31,7 +31,7 @@
 #include <Carbon/Carbon.h>
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
-#else
+#elif !defined(__SWITCH__)
 #include <GL/gl.h>
 #include <GL/glu.h>
 #endif    /* __APPLE__ */
@@ -109,7 +109,7 @@ void createRCFile( char *rcfile )
     }
     else
     {
-        printf( "Unable to create 'abuserc' file.\n" );
+        printf( "Unable to create 'abuserc' file.: %s\n", rcfile );
     }
 }
 
@@ -402,6 +402,9 @@ void setup( int argc, char **argv )
 
     controller = NULL;
     // try using the first available game controller
+#ifdef __SWITCH__
+    flags.gamepad = 1;
+#endif
     if( flags.gamepad )
     {
 	for (int i = 0; i < SDL_NumJoysticks(); ++i) {

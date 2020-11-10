@@ -14,7 +14,7 @@
 #include <stdlib.h>
 
 #include "lisp/lisp.h"
-#include "sdlport/sound.h"
+#include "sdl2port/sound.h"
 
 #include "specs.h"
 #include "items.h"

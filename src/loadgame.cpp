@@ -246,7 +246,9 @@ int load_game(int show_all, char const *title)   // return 0 if the player escap
 	wm->enable_controller(false);
 	
         wm->flush_screen();
-        wm->get_event(ev);
+	do {
+            wm->get_event(ev);
+	} while (ev.type == EV_MOUSE_MOVE && wm->IsPending());
         if (ev.type==EV_MESSAGE && ev.message.id>=ID_LOAD_GAME_NUMBER && ev.message.id<ID_LOAD_GAME_PREVIEW)
             got_level=ev.message.id-ID_LOAD_GAME_NUMBER+1;
 

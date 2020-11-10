@@ -53,6 +53,7 @@ int sound_init( int argc, char **argv )
         return 0;
     }
 
+#ifndef __SWITCH__
     // Check for the sfx directory, disable sound if we can't find it.
     datadir = get_filename_prefix();
     sfxdir = (char *)malloc( strlen( datadir ) + 5 + 1 );
@@ -64,8 +65,9 @@ int sound_init( int argc, char **argv )
         return 0;
     }
     free( sfxdir );
+#endif
 
-    if (Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 128) < 0)
+    if (Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 1024) < 0)
     {
         printf( "Sound: Unable to open audio - %s\nSound: Disabled (error)\n", SDL_GetError() );
         return 0;
@@ -179,6 +181,7 @@ song::song(char const * filename)
     strcpy(realname, get_filename_prefix());
     strcat(realname, filename);
 
+#ifndef __SWITCH__
     uint32_t data_size;
     data = load_hmi(realname, data_size);
 
@@ -203,6 +206,17 @@ song::song(char const * filename)
                Mix_GetError(), realname);
         return;
     }
+#else
+    size_t len = strlen(realname);
+    realname[len-1] = '3';
+    realname[len-2] = 'p';
+    realname[len-3] = 'm';
+
+    music = Mix_LoadMUS(realname);
+    if(!music) {
+      printf("Mix_LoadMUS(\"%s\"): %s\n", realname, Mix_GetError());
+    }
+#endif
 }
 
 song::~song()

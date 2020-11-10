@@ -649,7 +649,10 @@ void spicker::handle_inside_event(Event &ev, image *screen, InputManager *inm)
       }
     } break;
     case EV_MOUSE_BUTTON :
+    case EV_KEY:
     {
+      if (ev.type == EV_KEY && ev.key != 13)
+	      break;
       int me;
       if (vert)
     me=last_sel+(ev.mouse_move.y-m_pos.y)/item_height();

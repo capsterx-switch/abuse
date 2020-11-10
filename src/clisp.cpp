@@ -17,7 +17,7 @@
 
 #include "common.h"
 
-#include "sdlport/joy.h"
+#include "sdl2port/joy.h"
 
 #include "ant.h"
 #include "lisp.h"

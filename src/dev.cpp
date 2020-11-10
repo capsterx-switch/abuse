@@ -182,7 +182,9 @@ int confirm_quit()
         wm->flush_screen();
 
         Event ev;
-        wm->get_event(ev);
+	do {
+            wm->get_event(ev);
+	} while (ev.type == EV_MOUSE_MOVE && wm->IsPending());
         if(ev.type == EV_MESSAGE && ev.message.id == ID_QUIT_OK)
             fin = quit = 1;
         else if(ev.type == EV_MESSAGE && ev.message.id == ID_CANCEL)

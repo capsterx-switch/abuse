@@ -24,6 +24,12 @@ struct flags_struct
     short overlay;
     short gl;
     int antialias;
+#if defined __SWITCH__
+    int analog_deadzone;
+    float analog_divider;
+    int save_music;
+    int enable_music;
+#endif
     int gamepad;
 };
 
