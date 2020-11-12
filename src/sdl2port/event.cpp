@@ -225,6 +225,27 @@ void EventHandler::SysEvent(Event &ev)
             break;
         }
         break;
+
+    case SDL_FINGERDOWN:
+    case SDL_FINGERUP:
+    {
+      if(sdlev.type == SDL_FINGERDOWN)
+      {
+          ev.mouse_button |= LEFT_BUTTON;
+      }
+      else
+      {
+          ev.mouse_button &= ( 0xff - LEFT_BUTTON );
+      }
+      m_button = ev.mouse_button;
+      m_pos = ivec2(
+		      sdlev.tfinger.x * main_screen->Size().x,
+		      sdlev.tfinger.y * main_screen->Size().y);
+      ev.type = EV_MOUSE_BUTTON;
+      break;
+    }
+    break;
+
     case SDL_JOYBUTTONDOWN:
     case SDL_JOYBUTTONUP:
 	{
