@@ -63,6 +63,18 @@ static int power_of_two(int input)
 void set_mode(int mode, int argc, char **argv)
 {
     // Calculate the window scale
+    int win_width = xres;
+    int win_height = yres;
+    if (win_width < 640)
+        win_width *= 2;
+    if (win_height < 400)
+        win_height *= 2;
+    if (xres == 320 && yres == 200)
+    {
+        // Correct for the weird 320x200 aspect ratio
+        win_width = 640;
+        win_height = 480;
+    }
     win_xscale = mouse_xscale = (flags.xres << 16) / xres;
     win_yscale = mouse_yscale = (flags.yres << 16) / yres;
 
@@ -75,7 +87,7 @@ void set_mode(int mode, int argc, char **argv)
     window = SDL_CreateWindow("Abuse",
 			      SDL_WINDOWPOS_UNDEFINED,
 			      SDL_WINDOWPOS_UNDEFINED,
-			      flags.xres, flags.yres,
+			      win_width, win_height,
 #ifdef __SWITCH__
 			      SDL_WINDOW_FULLSCREEN
 #else
@@ -98,7 +110,12 @@ void set_mode(int mode, int argc, char **argv)
     }
 
     // This will make sure that the aspect ratio is maintained in fullscreen mode
-    SDL_RenderSetLogicalSize(renderer, flags.xres, flags.yres);
+    if (xres == 320 && yres == 200) {
+        // Lie. This fixes the aspect ratio for us.
+        SDL_RenderSetLogicalSize(renderer, 320, 240);
+    } else {
+        SDL_RenderSetLogicalSize(renderer, xres, yres);
+    }
 
     // Create the screen image
     main_screen = new image(ivec2(xres, yres), NULL, 2);

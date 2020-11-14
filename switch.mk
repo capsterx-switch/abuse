@@ -38,7 +38,7 @@ EXEFS_SRC	:=	exefs_src
 
 APP_TITLE := Abuse
 APP_AUTHOR := CRACK DOT COM
-APP_VERSION := 0.8r2
+APP_VERSION := 0.8r3
 ROMFS=data
 ICON		:=	icon.jpg
 

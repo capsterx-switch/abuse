@@ -272,6 +272,14 @@ void EventHandler::SysEvent(Event &ev)
               case (int)Switch_Joy::KEY_LSTICK_RIGHT:
                 ev.key = JK_RIGHT;
                 break;
+	      case 8:
+		ev.key = get_key_binding("b1", 0);
+		break;
+	      case 9:
+		ev.key = get_key_binding("b2", 0);
+		break;
+	      default:
+		printf("Uknown joy key %d\n", sdlev.jbutton.button);
 	    };
 	}
 	break;
@@ -341,11 +349,15 @@ void EventHandler::SysEvent(Event &ev)
 		    break;
 #ifdef __SWITCH__
 		case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+		    printf("left\n");
 	          ev.key = get_key_binding("b3", 0);
 		  break;
 		case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+		    printf("right\n");
 	          ev.key = get_key_binding("b4", 0);
 		  break;
+		default:
+		  printf("Unknown key %d\n", sdlev.cbutton.button);
 #endif
 	    }
 	    break;
