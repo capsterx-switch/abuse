@@ -17,5 +17,6 @@ void initSwitch()
 void deinitSwitch()
 {
   romfsExit();
+  socketExit();
   nsExit();
 }
